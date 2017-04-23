@@ -20,10 +20,11 @@ private:
 	QFileSystemModel *		_fileModel;
 
 private:
-	bool					isAlbum(const QFileInfo &);
-	QString					printChildren(const QFileInfoList & entries, const int & level);
+	int						containsAudioFiles(const QFileInfo &);
+	void					handleIfAlbum(const QFileInfo &, const int & level);
 
 private slots:
+	void					treeItemExpanded(const QModelIndex &index);
 	void					treeItemClicked(const QModelIndex &index);
 
 };

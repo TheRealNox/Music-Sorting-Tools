@@ -1,6 +1,8 @@
 #pragma once
 
+#include <ActiveQt\qaxwidget.h>
 #include <QDebug>
+#include <QFileDialog>
 #include <QFileSystemModel>
 #include <QtWidgets/QMainWindow>
 #include "ui_MainWindow.h"
@@ -14,17 +16,19 @@ public:
 
 private:
     Ui::MainWindowClass		_ui;
+
 	// Make two models instead of one
 	// to filter them separately
-	QFileSystemModel *		_dirModel;
-	QFileSystemModel *		_fileModel;
+	QFileSystemModel *		_leftDirModel;
+	QFileSystemModel *		_rightDirModel;
 
 private:
 	int						containsAudioFiles(const QFileInfo &);
-	void					handleIfAlbum(const QFileInfo &, const int & level);
+	void					handleIfAlbum(const QFileInfo &, const int & level, QPlainTextEdit * textEdit);
 
 private slots:
-	void					treeItemExpanded(const QModelIndex &index);
-	void					treeItemClicked(const QModelIndex &index);
-
+	void					leftTreeItemExpanded(const QModelIndex &index);
+	void					leftTreeItemClicked(const QModelIndex &index);
+	void					rightTreeItemExpanded(const QModelIndex &index);
+	void					rightTreeItemClicked(const QModelIndex &index);
 };

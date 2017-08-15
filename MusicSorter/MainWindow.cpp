@@ -8,68 +8,26 @@ MainWindow::MainWindow(QWidget *parent)
 	//DIRECTORIES
 	// Creates our new model and populate
 	QString mPath = "C:/";
-	this->_dirModel = new QFileSystemModel(this);
+	this->_leftDirModel = new QFileSystemModel(this);
+	this->_rightDirModel = new QFileSystemModel(this);
 
 	// Set filter
-	this->_dirModel->setFilter(QDir::NoDotAndDotDot |
-		QDir::AllDirs);
+	this->_leftDirModel->setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
+	this->_rightDirModel->setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
 
 	// QFileSystemModel requires root path
-	this->_dirModel->setRootPath(mPath);
+	this->_leftDirModel->setRootPath(mPath);
+	this->_rightDirModel->setRootPath(mPath);
 
 	// Attach the model to the view
-	this->_ui._explorerView->setModel(this->_dirModel);
+	this->_ui._explorerView->setModel(this->_leftDirModel);
+	this->_ui._explorerView_2->setModel(this->_rightDirModel);
 
-	// FILES
+	connect(this->_ui._explorerView, &QTreeView::clicked, this, &MainWindow::leftTreeItemClicked);
+	connect(this->_ui._explorerView, &QTreeView::expanded, this, &MainWindow::leftTreeItemExpanded);
+	connect(this->_ui._explorerView_2, &QTreeView::clicked, this, &MainWindow::rightTreeItemClicked);
+	connect(this->_ui._explorerView_2, &QTreeView::expanded, this, &MainWindow::rightTreeItemExpanded);
 
-	this->_fileModel = new QFileSystemModel(this);
-
-	// Set filter
-	this->_fileModel->setFilter(QDir::NoDotAndDotDot |
-		QDir::AllEntries);
-
-	// QFileSystemModel requires root path
-	this->_fileModel->setRootPath(mPath);
-
-	// Attach the model to the view
-	this->_ui._fileListView->setModel(this->_fileModel);
-
-	connect(this->_ui._explorerView, &QTreeView::clicked, this, &MainWindow::treeItemClicked);
-	connect(this->_ui._explorerView, &QTreeView::expanded, this, &MainWindow::treeItemExpanded);
-}
-
-void			MainWindow::treeItemExpanded(const QModelIndex &index)
-{
-	QCoreApplication::processEvents();
-	this->_ui._explorerView->header()->resizeSections(QHeaderView::ResizeToContents);
-}
-
-void			MainWindow::treeItemClicked(const QModelIndex &index)
-{
-	// TreeView clicked
-	// 1. We need to extract path
-	// 2. Set that path into our ListView
-
-	// Get the full path of the item that's user clicked on
-	QString		mPath = this->_dirModel->fileInfo(index).absoluteFilePath();
-
-	QFileInfo	fileInfo(mPath);
-
-	if (fileInfo.isDir())
-	{
-		this->_ui._previewPlainTextEdit->clear();
-		QDir dir(mPath);
-		dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
-		for (auto entry : dir.entryInfoList())
-			this->handleIfAlbum(entry, 0);
-		QTextCursor cursor(this->_ui._previewPlainTextEdit->textCursor());
-		cursor.movePosition(QTextCursor::Start);
-		this->_ui._previewPlainTextEdit->setTextCursor(cursor);
-	}
-
-	this->_ui._fileListView->setRootIndex(this->_fileModel->setRootPath(mPath));
-
-	this->_ui._explorerView->header()->resizeSections(QHeaderView::ResizeToContents);
 }
 
 int	MainWindow::containsAudioFiles(const QFileInfo & entry)
@@ -87,7 +45,7 @@ int	MainWindow::containsAudioFiles(const QFileInfo & entry)
 	return audioFiles;
 }
 
-void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level)
+void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlainTextEdit * textEdit)
 {
 	if (entry.fileName().split(" ").at(0).toInt() > 1024 && entry.fileName().split(" ").at(0).toInt() < 4096)
 	{
@@ -102,7 +60,7 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level)
 			output.append(" (");
 			output.append(QString::number(i));
 			output.append(")");
-			this->_ui._previewPlainTextEdit->appendPlainText(output);
+			textEdit->appendPlainText(output);
 		}
 		else
 		{
@@ -131,7 +89,7 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level)
 							output.append("-");
 					}
 					output.append(")");
-					this->_ui._previewPlainTextEdit->appendPlainText(output);
+					textEdit->appendPlainText(output);
 				}
 			}
 		}
@@ -142,10 +100,74 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level)
 		for (int i = 0; i < level; ++i)
 			output.append("\t");
 		output.append(entry.fileName());
-		this->_ui._previewPlainTextEdit->appendPlainText(output);
+		textEdit->appendPlainText(output);
 		QDir dir(entry.absoluteFilePath());
 		dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
 		for (auto entry : dir.entryInfoList())
-			this->handleIfAlbum(entry, level + 1);
+			this->handleIfAlbum(entry, level + 1, textEdit);
 	}
+}
+
+void			MainWindow::leftTreeItemExpanded(const QModelIndex &index)
+{
+	QCoreApplication::processEvents();
+	this->_ui._explorerView->header()->resizeSections(QHeaderView::ResizeToContents);
+}
+
+void			MainWindow::leftTreeItemClicked(const QModelIndex &index)
+{
+	// TreeView clicked
+	// 1. We need to extract path
+	// 2. Set that path into our ListView
+
+	// Get the full path of the item that's user clicked on
+	QString		mPath = this->_leftDirModel->fileInfo(index).absoluteFilePath();
+
+	QFileInfo	fileInfo(mPath);
+
+	if (fileInfo.isDir())
+	{
+		this->_ui._previewPlainTextEdit->clear();
+		QDir dir(mPath);
+		dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
+		for (auto entry : dir.entryInfoList())
+			this->handleIfAlbum(entry, 0, this->_ui._previewPlainTextEdit);
+		QTextCursor cursor(this->_ui._previewPlainTextEdit->textCursor());
+		cursor.movePosition(QTextCursor::Start);
+		this->_ui._previewPlainTextEdit->setTextCursor(cursor);
+	}
+
+	this->_ui._explorerView->header()->resizeSections(QHeaderView::ResizeToContents);
+}
+
+void			MainWindow::rightTreeItemExpanded(const QModelIndex &index)
+{
+	QCoreApplication::processEvents();
+	this->_ui._explorerView_2->header()->resizeSections(QHeaderView::ResizeToContents);
+}
+
+void			MainWindow::rightTreeItemClicked(const QModelIndex &index)
+{
+	// TreeView clicked
+	// 1. We need to extract path
+	// 2. Set that path into our ListView
+
+	// Get the full path of the item that's user clicked on
+	QString		mPath = this->_rightDirModel->fileInfo(index).absoluteFilePath();
+
+	QFileInfo	fileInfo(mPath);
+
+	if (fileInfo.isDir())
+	{
+		this->_ui._previewPlainTextEdit_2->clear();
+		QDir dir(mPath);
+		dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
+		for (auto entry : dir.entryInfoList())
+			this->handleIfAlbum(entry, 0, this->_ui._previewPlainTextEdit_2);
+		QTextCursor cursor(this->_ui._previewPlainTextEdit_2->textCursor());
+		cursor.movePosition(QTextCursor::Start);
+		this->_ui._previewPlainTextEdit_2->setTextCursor(cursor);
+	}
+
+	this->_ui._explorerView_2->header()->resizeSections(QHeaderView::ResizeToContents);
 }

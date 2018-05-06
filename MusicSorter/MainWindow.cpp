@@ -1,5 +1,11 @@
 #include "MainWindow.h"
 
+#include <QMediaObject>
+#include <QMediaMetaData>
+#include <QMediaPlayer>
+
+#include "MediaInfoDLL.h"
+
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
 {
@@ -30,19 +36,31 @@ MainWindow::MainWindow(QWidget *parent)
 
 }
 
-int	MainWindow::containsAudioFiles(const QFileInfo & entry)
+MainWindow::audioFolderInfo	MainWindow::containsAudioFiles(const QFileInfo & entry)
 {
-	int audioFiles = 0;
+	MainWindow::audioFolderInfo infos;
+	MediaInfoDLL::MediaInfo MI;
+	MI.Option(L"Internet", L"No");
+	MI.Option(__T("Info_Version"), __T("0.7.13;MediaInfoDLL_Example_MSVC;0.7.13"));
 
 	QDir filesDir(entry.absoluteFilePath());
 	filesDir.setFilter(QDir::NoDotAndDotDot | QDir::AllEntries);
 	for (auto fileInfo : filesDir.entryInfoList())
 	{
 		if (fileInfo.fileName().endsWith(".mp3") || fileInfo.fileName().endsWith(".m4a"))
-			audioFiles++;
+		{
+			MI.Open(fileInfo.filePath().toStdWString());
+			infos.audioFilesNbr++;
+			infos.averageBitRate += QString::QString::fromStdWString(MI.Get(MediaInfoDLL::Stream_Audio, 0, __T("BitRate"), MediaInfoDLL::Info_Text, MediaInfoDLL::Info_Name)).toInt();
+		}
 	}
 
-	return audioFiles;
+	if (infos.audioFilesNbr)
+		infos.averageBitRate /= infos.audioFilesNbr;
+
+	infos.averageBitRate /= 1000;
+
+	return infos;
 }
 
 void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlainTextEdit * textEdit)
@@ -51,7 +69,8 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlain
 	{
 		QDir subdir(entry.absoluteFilePath());
 		subdir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
-		if (int i = this->containsAudioFiles(entry))
+		MainWindow::audioFolderInfo infos = this->containsAudioFiles(entry);
+		if (int i = infos.audioFilesNbr)
 		{
 			QString output;
 			for (int i = 0; i < level; ++i)
@@ -59,7 +78,9 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlain
 			output.append(entry.fileName());
 			output.append(" (");
 			output.append(QString::number(i));
-			output.append(")");
+			output.append(")     [avg:");
+			output.append(QString::number(infos.averageBitRate));
+			output.append(" kbps]");
 			textEdit->appendPlainText(output);
 		}
 		else
@@ -70,7 +91,7 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlain
 				for (auto fileInfo : subdir.entryInfoList())
 				{
 					int trackWithin = 0;
-					trackWithin = this->containsAudioFiles(fileInfo);
+					trackWithin = this->containsAudioFiles(fileInfo).audioFilesNbr;
 					if (trackWithin > 0)
 						tracksPerDisk.push_back(trackWithin);
 				}

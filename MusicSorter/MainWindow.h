@@ -1,6 +1,5 @@
 #pragma once
 
-#include <ActiveQt\qaxwidget.h>
 #include <QDebug>
 #include <QFileDialog>
 #include <QFileSystemModel>
@@ -9,6 +8,12 @@
 
 class						MainWindow : public QMainWindow
 {
+	struct audioFolderInfo
+	{
+		int audioFilesNbr = 0;
+		int averageBitRate = 0;
+	};
+
     Q_OBJECT
 
 public:
@@ -23,7 +28,7 @@ private:
 	QFileSystemModel *		_rightDirModel;
 
 private:
-	int						containsAudioFiles(const QFileInfo &);
+	audioFolderInfo			containsAudioFiles(const QFileInfo &);
 	void					handleIfAlbum(const QFileInfo &, const int & level, QPlainTextEdit * textEdit);
 
 private slots:

@@ -63,7 +63,7 @@ MainWindow::audioFolderInfo	MainWindow::containsAudioFiles(const QFileInfo & ent
 	return infos;
 }
 
-void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlainTextEdit * textEdit)
+void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlainTextEdit * textEdit, bool displayAveragebitRate)
 {
 	if (entry.fileName().split(" ").at(0).toInt() > 1024 && entry.fileName().split(" ").at(0).toInt() < 4096)
 	{
@@ -78,38 +78,51 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlain
 			output.append(entry.fileName());
 			output.append(" (");
 			output.append(QString::number(i));
-			output.append(")     [avg:");
-			output.append(QString::number(infos.averageBitRate));
-			output.append(" kbps]");
+			output.append(")");
+			if (displayAveragebitRate)
+			{
+				output.append("    [Avg. BitRate: ");
+				output.append(QString::number(infos.averageBitRate));
+				output.append(" kbps]");
+			}
 			textEdit->appendPlainText(output);
 		}
 		else
 		{
 			if (subdir.entryInfoList().size() > 0)
 			{
-				std::vector<int> tracksPerDisk;
+				std::vector<MainWindow::audioFolderInfo> tracksInfoPerDisk;
 				for (auto fileInfo : subdir.entryInfoList())
 				{
-					int trackWithin = 0;
-					trackWithin = this->containsAudioFiles(fileInfo).audioFilesNbr;
-					if (trackWithin > 0)
-						tracksPerDisk.push_back(trackWithin);
+					MainWindow::audioFolderInfo trackInfo;
+					trackInfo = this->containsAudioFiles(fileInfo);
+					if (trackInfo.audioFilesNbr > 0)
+						tracksInfoPerDisk.push_back(trackInfo);
 				}
 
-				if (tracksPerDisk.size())
+				if (tracksInfoPerDisk.size())
 				{
 					QString output;
+					int averageAllCds = 0;
 					for (int i = 0; i < level; ++i)
 						output.append("\t");
 					output.append(entry.fileName());
 					output.append(" (");
-					for (int i = 0; i < tracksPerDisk.size(); ++i)
+					for (int i = 0; i < tracksInfoPerDisk.size(); ++i)
 					{
-						output.append(QString::number(tracksPerDisk.at(i)));
-						if (i < tracksPerDisk.size() - 1)
+						output.append(QString::number(tracksInfoPerDisk.at(i).audioFilesNbr));
+						averageAllCds += tracksInfoPerDisk.at(i).averageBitRate;
+						if (i < tracksInfoPerDisk.size() - 1)
 							output.append("-");
 					}
 					output.append(")");
+					if (displayAveragebitRate)
+					{
+						averageAllCds /= tracksInfoPerDisk.size();
+						output.append("    [Avg. BitRate: ");
+						output.append(QString::number(averageAllCds));
+						output.append(" kbps]");
+					}
 					textEdit->appendPlainText(output);
 				}
 			}
@@ -125,7 +138,7 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlain
 		QDir dir(entry.absoluteFilePath());
 		dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
 		for (auto entry : dir.entryInfoList())
-			this->handleIfAlbum(entry, level + 1, textEdit);
+			this->handleIfAlbum(entry, level + 1, textEdit, displayAveragebitRate);
 	}
 }
 
@@ -184,7 +197,7 @@ void			MainWindow::rightTreeItemClicked(const QModelIndex &index)
 		QDir dir(mPath);
 		dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
 		for (auto entry : dir.entryInfoList())
-			this->handleIfAlbum(entry, 0, this->_ui._previewPlainTextEdit_2);
+			this->handleIfAlbum(entry, 0, this->_ui._previewPlainTextEdit_2, true);
 		QTextCursor cursor(this->_ui._previewPlainTextEdit_2->textCursor());
 		cursor.movePosition(QTextCursor::Start);
 		this->_ui._previewPlainTextEdit_2->setTextCursor(cursor);

@@ -29,7 +29,7 @@ private:
 
 private:
 	audioFolderInfo			containsAudioFiles(const QFileInfo &);
-	void					handleIfAlbum(const QFileInfo &, const int & level, QPlainTextEdit * textEdit);
+	void					handleIfAlbum(const QFileInfo &, const int & level, QPlainTextEdit * textEdit, bool displayAverageBitRate = false);
 
 private slots:
 	void					leftTreeItemExpanded(const QModelIndex &index);

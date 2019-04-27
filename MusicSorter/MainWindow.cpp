@@ -33,6 +33,9 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(this->_ui._explorerView, &QTreeView::expanded, this, &MainWindow::leftTreeItemExpanded);
 	connect(this->_ui._explorerView_2, &QTreeView::clicked, this, &MainWindow::rightTreeItemClicked);
 	connect(this->_ui._explorerView_2, &QTreeView::expanded, this, &MainWindow::rightTreeItemExpanded);
+	connect(this->_ui.displayKbpsCheckBox, &QCheckBox::toggled, this, [&](bool checked) {
+		this->_displayAverage = checked;
+	});
 
 }
 
@@ -49,21 +52,24 @@ MainWindow::audioFolderInfo	MainWindow::containsAudioFiles(const QFileInfo & ent
 	{
 		if (fileInfo.fileName().endsWith(".mp3") || fileInfo.fileName().endsWith(".m4a"))
 		{
-			MI.Open(fileInfo.filePath().toStdWString());
+			if (this->_displayAverage)
+				MI.Open(fileInfo.filePath().toStdWString());
 			infos.audioFilesNbr++;
-			infos.averageBitRate += QString::QString::fromStdWString(MI.Get(MediaInfoDLL::Stream_Audio, 0, __T("BitRate"), MediaInfoDLL::Info_Text, MediaInfoDLL::Info_Name)).toInt();
+			if (this->_displayAverage)
+				infos.averageBitRate += QString::QString::fromStdWString(MI.Get(MediaInfoDLL::Stream_Audio, 0, __T("BitRate"), MediaInfoDLL::Info_Text, MediaInfoDLL::Info_Name)).toInt();
 		}
 	}
 
-	if (infos.audioFilesNbr)
+	if (infos.audioFilesNbr && this->_displayAverage)
+	{
 		infos.averageBitRate /= infos.audioFilesNbr;
-
-	infos.averageBitRate /= 1000;
+		infos.averageBitRate /= 1000;
+	}
 
 	return infos;
 }
 
-void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlainTextEdit * textEdit, bool displayAveragebitRate)
+void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlainTextEdit * textEdit)
 {
 	if (entry.fileName().split(" ").at(0).toInt() > 1024 && entry.fileName().split(" ").at(0).toInt() < 4096)
 	{
@@ -79,7 +85,7 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlain
 			output.append(" (");
 			output.append(QString::number(i));
 			output.append(")");
-			if (displayAveragebitRate)
+			if (this->_displayAverage)
 			{
 				output.append("    [Avg. BitRate: ");
 				output.append(QString::number(infos.averageBitRate));
@@ -116,7 +122,7 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlain
 							output.append("-");
 					}
 					output.append(")");
-					if (displayAveragebitRate)
+					if (this->_displayAverage)
 					{
 						averageAllCds /= tracksInfoPerDisk.size();
 						output.append("    [Avg. BitRate: ");
@@ -138,7 +144,7 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlain
 		QDir dir(entry.absoluteFilePath());
 		dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
 		for (auto entry : dir.entryInfoList())
-			this->handleIfAlbum(entry, level + 1, textEdit, displayAveragebitRate);
+			this->handleIfAlbum(entry, level + 1, textEdit);
 	}
 }
 
@@ -197,7 +203,7 @@ void			MainWindow::rightTreeItemClicked(const QModelIndex &index)
 		QDir dir(mPath);
 		dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
 		for (auto entry : dir.entryInfoList())
-			this->handleIfAlbum(entry, 0, this->_ui._previewPlainTextEdit_2, true);
+			this->handleIfAlbum(entry, 0, this->_ui._previewPlainTextEdit_2);
 		QTextCursor cursor(this->_ui._previewPlainTextEdit_2->textCursor());
 		cursor.movePosition(QTextCursor::Start);
 		this->_ui._previewPlainTextEdit_2->setTextCursor(cursor);

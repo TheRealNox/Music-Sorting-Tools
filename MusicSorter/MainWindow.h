@@ -21,6 +21,7 @@ public:
 
 private:
     Ui::MainWindowClass		_ui;
+	bool					_displayAverage = false;
 
 	// Make two models instead of one
 	// to filter them separately
@@ -29,7 +30,7 @@ private:
 
 private:
 	audioFolderInfo			containsAudioFiles(const QFileInfo &);
-	void					handleIfAlbum(const QFileInfo &, const int & level, QPlainTextEdit * textEdit, bool displayAverageBitRate = false);
+	void					handleIfAlbum(const QFileInfo &, const int & level, QPlainTextEdit * textEdit);
 
 private slots:
 	void					leftTreeItemExpanded(const QModelIndex &index);

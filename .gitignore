@@ -1,4 +1,4 @@
-﻿################################################################################
+################################################################################
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
@@ -11,5 +11,7 @@
 /Nox Tools.VC.VC.opendb
 /MusicSorter/GeneratedFiles
 /.vs/Nox Tools/v14
-x64
-Debug
+
+x64/Release/translations/
+
+MusicSorter/x64/

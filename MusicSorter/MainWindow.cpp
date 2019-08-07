@@ -56,7 +56,7 @@ MainWindow::audioFolderInfo	MainWindow::containsAudioFiles(const QFileInfo & ent
 				MI.Open(fileInfo.filePath().toStdWString());
 			infos.audioFilesNbr++;
 			if (this->_displayAverage)
-				infos.averageBitRate += QString::QString::fromStdWString(MI.Get(MediaInfoDLL::Stream_Audio, 0, __T("BitRate"), MediaInfoDLL::Info_Text, MediaInfoDLL::Info_Name)).toInt();
+				infos.averageBitRate += QString::QString::fromStdWString(MI.Get(MediaInfoDLL::Stream_General, 0, __T("OverallBitRate"), MediaInfoDLL::Info_Text, MediaInfoDLL::Info_Name)).toInt();
 		}
 	}
 

@@ -23,12 +23,16 @@
       <widget class="QWidget" name="layoutWidget">
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
-         <widget class="QTreeView" name="_explorerView"/>
+         <widget class="QTreeView" name="_explorerView">
+          <property name="sortingEnabled">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
         <item>
-         <widget class="QPlainTextEdit" name="_previewPlainTextEdit">
+         <widget class="QTextEdit" name="_previewTextEdit">
           <property name="lineWrapMode">
-           <enum>QPlainTextEdit::NoWrap</enum>
+           <enum>QTextEdit::NoWrap</enum>
           </property>
           <property name="readOnly">
            <bool>true</bool>
@@ -43,9 +47,9 @@
          <widget class="QTreeView" name="_explorerView_2"/>
         </item>
         <item>
-         <widget class="QPlainTextEdit" name="_previewPlainTextEdit_2">
+         <widget class="QTextEdit" name="_previewTextEdit_2">
           <property name="lineWrapMode">
-           <enum>QPlainTextEdit::NoWrap</enum>
+           <enum>QTextEdit::NoWrap</enum>
           </property>
           <property name="readOnly">
            <bool>true</bool>

@@ -1,10 +1,15 @@
 #include "MainWindow.h"
 
-#include <QMediaObject>
-#include <QMediaMetaData>
-#include <QMediaPlayer>
+#include <taglib/tag.h>
+#include <taglib/fileref.h>
+#include <taglib/mpegfile.h>
+#include <taglib/mp4file.h>
+#include <taglib/id3v2tag.h>
+#include <taglib/id3v2frame.h>
+#include <taglib/attachedpictureframe.h>
 
-#include "MediaInfoDLL.h"
+#include <qimage.h>
+#include <qlabel.h>
 
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
@@ -42,56 +47,90 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::audioFolderInfo	MainWindow::containsAudioFiles(const QFileInfo & entry)
 {
 	MainWindow::audioFolderInfo infos;
-	MediaInfoDLL::MediaInfo MI;
-	MI.Option(L"Internet", L"No");
-	MI.Option(__T("Info_Version"), __T("0.7.13;MediaInfoDLL_Example_MSVC;0.7.13"));
 
 	QDir filesDir(entry.absoluteFilePath());
 	filesDir.setFilter(QDir::NoDotAndDotDot | QDir::AllEntries);
 	for (auto fileInfo : filesDir.entryInfoList())
 	{
-		if (fileInfo.fileName().endsWith(".mp3") || fileInfo.fileName().endsWith(".m4a"))
+		if (fileInfo.fileName().toLower().endsWith(".mp3") || fileInfo.fileName().toLower().endsWith(".m4a"))
 		{
-			if (this->_displayAverage)
-				MI.Open(fileInfo.filePath().toStdWString());
 			infos.audioFilesNbr++;
 			if (this->_displayAverage)
-				infos.averageBitRate += QString::QString::fromStdWString(MI.Get(MediaInfoDLL::Stream_General, 0, __T("OverallBitRate"), MediaInfoDLL::Info_Text, MediaInfoDLL::Info_Name)).toInt();
+			{
+				std::string path = fileInfo.filePath().toStdString();
+				std::wstring wpath = fileInfo.filePath().toStdWString();
+				TagLib::FileRef f(wpath.c_str());
+				if (!f.isNull() && f.audioProperties())
+				{
+					infos.averageBitRate += f.audioProperties()->bitrate();
+					if (TagLib::MPEG::File* file = dynamic_cast<TagLib::MPEG::File*>(f.file()))
+					{
+						if (file->ID3v2Tag())
+						{
+							auto tag = file->ID3v2Tag();
+							const TagLib::ID3v2::FrameList& frameList = tag->frameList("APIC");
+							if (!frameList.isEmpty())
+							{
+								// Just grab the first image.
+								const auto* frame = (TagLib::ID3v2::AttachedPictureFrame*)frameList.front();
+								QImage cover;
+								cover.loadFromData((const uchar*)frame->picture().data(), frame->picture().size());
+								infos.averageCoverSize += cover.size();
+							}
+						}
+					}
+					else if (TagLib::MP4::File* file = dynamic_cast<TagLib::MP4::File*>(f.file()))
+					{
+						TagLib::MP4::Tag* tag = file->tag();
+						const TagLib::MP4::ItemListMap& itemListMap = tag->itemListMap();
+						if (itemListMap.contains("covr"))
+						{
+							const TagLib::MP4::CoverArtList& coverArtList = itemListMap["covr"].toCoverArtList();
+							if (!coverArtList.isEmpty())
+							{
+								const TagLib::MP4::CoverArt* pic = &(coverArtList.front());
+								QImage cover;
+								cover.loadFromData((const uchar*)pic->data().data(), pic->data().size());
+								infos.averageCoverSize += cover.size();
+							}
+						}
+					}
+				}
+			}
+
 		}
 	}
 
 	if (infos.audioFilesNbr && this->_displayAverage)
 	{
 		infos.averageBitRate /= infos.audioFilesNbr;
-		infos.averageBitRate /= 1000;
+		infos.averageCoverSize /= infos.audioFilesNbr;
 	}
 
 	return infos;
 }
 
-void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlainTextEdit * textEdit)
+void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QTextEdit * textEdit)
 {
+	// Check if we see a year, which is usually how we define an album folder
 	if (entry.fileName().split(" ").at(0).toInt() > 1024 && entry.fileName().split(" ").at(0).toInt() < 4096)
 	{
 		QDir subdir(entry.absoluteFilePath());
 		subdir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
 		MainWindow::audioFolderInfo infos = this->containsAudioFiles(entry);
-		if (int i = infos.audioFilesNbr)
+		if (infos.audioFilesNbr)
 		{
 			QString output;
 			for (int i = 0; i < level; ++i)
 				output.append("\t");
 			output.append(entry.fileName());
 			output.append(" (");
-			output.append(QString::number(i));
+			output.append(QString::number(infos.audioFilesNbr));
 			output.append(")");
+			textEdit->append(output);
 			if (this->_displayAverage)
-			{
-				output.append("    [Avg. BitRate: ");
-				output.append(QString::number(infos.averageBitRate));
-				output.append(" kbps]");
-			}
-			textEdit->appendPlainText(output);
+				this->outputAlbumInfoToTextEdit(output, infos.averageBitRate, infos.averageCoverSize, textEdit);
+
 		}
 		else
 		{
@@ -110,6 +149,7 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlain
 				{
 					QString output;
 					int averageAllCds = 0;
+					QSize averageCover;
 					for (int i = 0; i < level; ++i)
 						output.append("\t");
 					output.append(entry.fileName());
@@ -118,18 +158,18 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlain
 					{
 						output.append(QString::number(tracksInfoPerDisk.at(i).audioFilesNbr));
 						averageAllCds += tracksInfoPerDisk.at(i).averageBitRate;
+						averageCover += tracksInfoPerDisk.at(i).averageCoverSize;
 						if (i < tracksInfoPerDisk.size() - 1)
 							output.append("-");
 					}
 					output.append(")");
+					textEdit->append(output);
 					if (this->_displayAverage)
 					{
 						averageAllCds /= tracksInfoPerDisk.size();
-						output.append("    [Avg. BitRate: ");
-						output.append(QString::number(averageAllCds));
-						output.append(" kbps]");
+						averageCover /= tracksInfoPerDisk.size();
+						this->outputAlbumInfoToTextEdit(output, averageAllCds, averageCover, textEdit);
 					}
-					textEdit->appendPlainText(output);
 				}
 			}
 		}
@@ -140,12 +180,37 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QPlain
 		for (int i = 0; i < level; ++i)
 			output.append("\t");
 		output.append(entry.fileName());
-		textEdit->appendPlainText(output);
+		textEdit->append(output);
 		QDir dir(entry.absoluteFilePath());
 		dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
 		for (auto entry : dir.entryInfoList())
 			this->handleIfAlbum(entry, level + 1, textEdit);
 	}
+}
+
+void MainWindow::outputAlbumInfoToTextEdit(QString & toAppendto, const int& bitrate, const QSize& artworkSize, QTextEdit* textEdit)
+{
+	QString toAdd;
+	toAdd.append("    [Avg. BitRate: ");
+	toAdd.append(QString::number(bitrate));
+	toAdd.append(" kbps]");
+
+	if (bitrate < 192)
+		textEdit->setTextColor(QColor("red"));
+	textEdit->insertPlainText(toAdd);
+	textEdit->setTextColor(QColor("black"));
+	toAdd = "    [Avg. Cover: ";
+
+	toAdd.append(QString::number(artworkSize.width()));
+	toAdd.append("x");
+	toAdd.append(QString::number(artworkSize.height()));
+	toAdd.append("]");
+	if (artworkSize.width() != artworkSize.height())
+		textEdit->setTextColor(QColor("orange"));
+	if (artworkSize.width() < 500)
+		textEdit->setTextColor(QColor("chocolate"));
+	textEdit->insertPlainText(toAdd);
+	textEdit->setTextColor(QColor("black"));
 }
 
 void			MainWindow::leftTreeItemExpanded(const QModelIndex &index)
@@ -167,14 +232,14 @@ void			MainWindow::leftTreeItemClicked(const QModelIndex &index)
 
 	if (fileInfo.isDir())
 	{
-		this->_ui._previewPlainTextEdit->clear();
+		this->_ui._previewTextEdit->clear();
 		QDir dir(mPath);
 		dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
 		for (auto entry : dir.entryInfoList())
-			this->handleIfAlbum(entry, 0, this->_ui._previewPlainTextEdit);
-		QTextCursor cursor(this->_ui._previewPlainTextEdit->textCursor());
+			this->handleIfAlbum(entry, 0, this->_ui._previewTextEdit);
+		QTextCursor cursor(this->_ui._previewTextEdit->textCursor());
 		cursor.movePosition(QTextCursor::Start);
-		this->_ui._previewPlainTextEdit->setTextCursor(cursor);
+		this->_ui._previewTextEdit->setTextCursor(cursor);
 	}
 
 	this->_ui._explorerView->header()->resizeSections(QHeaderView::ResizeToContents);
@@ -199,14 +264,14 @@ void			MainWindow::rightTreeItemClicked(const QModelIndex &index)
 
 	if (fileInfo.isDir())
 	{
-		this->_ui._previewPlainTextEdit_2->clear();
+		this->_ui._previewTextEdit_2->clear();
 		QDir dir(mPath);
 		dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
 		for (auto entry : dir.entryInfoList())
-			this->handleIfAlbum(entry, 0, this->_ui._previewPlainTextEdit_2);
-		QTextCursor cursor(this->_ui._previewPlainTextEdit_2->textCursor());
+			this->handleIfAlbum(entry, 0, this->_ui._previewTextEdit_2);
+		QTextCursor cursor(this->_ui._previewTextEdit_2->textCursor());
 		cursor.movePosition(QTextCursor::Start);
-		this->_ui._previewPlainTextEdit_2->setTextCursor(cursor);
+		this->_ui._previewTextEdit_2->setTextCursor(cursor);
 	}
 
 	this->_ui._explorerView_2->header()->resizeSections(QHeaderView::ResizeToContents);

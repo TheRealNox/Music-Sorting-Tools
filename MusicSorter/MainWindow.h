@@ -4,6 +4,7 @@
 #include <QFileDialog>
 #include <QFileSystemModel>
 #include <QtWidgets/QMainWindow>
+#include <QSize>
 #include "ui_MainWindow.h"
 
 class						MainWindow : public QMainWindow
@@ -12,6 +13,7 @@ class						MainWindow : public QMainWindow
 	{
 		int audioFilesNbr = 0;
 		int averageBitRate = 0;
+		QSize averageCoverSize = QSize(0, 0);
 	};
 
     Q_OBJECT
@@ -30,8 +32,9 @@ private:
 
 private:
 	audioFolderInfo			containsAudioFiles(const QFileInfo &);
-	void					handleIfAlbum(const QFileInfo &, const int & level, QPlainTextEdit * textEdit);
-
+	void					handleIfAlbum(const QFileInfo &, const int & level, QTextEdit* textEdit);
+	void					outputAlbumInfoToTextEdit(QString & toAppendto, const int & bitrate, const QSize & artworkSize, QTextEdit* textEdit);
+	
 private slots:
 	void					leftTreeItemExpanded(const QModelIndex &index);
 	void					leftTreeItemClicked(const QModelIndex &index);

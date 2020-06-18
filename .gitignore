@@ -6,13 +6,11 @@
 /MusicSorter/x64/Debug
 /MusicSorter/MusicSorter.vcxproj.filters
 *.user
-/x64/Debug
+x64
 /Nox Tools.VC.db
 /Nox Tools.VC.VC.opendb
 /MusicSorter/GeneratedFiles
 /.vs/Nox Tools/v14
-
-x64/Release/translations/
 
 MusicSorter/x64/
 /.vs/Nox Tools/v16

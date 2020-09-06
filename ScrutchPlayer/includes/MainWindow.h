@@ -6,21 +6,24 @@
 #include <QtWidgets/QMainWindow>
 #include "ui_MainWindow.h"
 
-/**
-* \class MainWindow
-* \brief Main UI class, it holds all other widgets
-*/
-class						MainWindow : public QMainWindow
+namespace ScrutchPlayer
 {
-Q_OBJECT
+    /**
+    * \class MainWindow
+    * \brief Main UI class, it holds all other widgets
+    */
+    class MainWindow : public QMainWindow
+    {
+    Q_OBJECT
 
-public:
-    explicit MainWindow(QWidget *parent = nullptr);
+    public:
+        explicit MainWindow(QWidget *parent = nullptr);
 
-private:
-    Ui::MainWindow		    _ui;
+    private:
+        Ui::MainWindow _ui;
 
-private:
+    private:
 
-private slots:
-};
+    private slots:
+    };
+}

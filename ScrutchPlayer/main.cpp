@@ -8,7 +8,7 @@ int main(int argc, char **argv)
 {
     QApplication app (argc, argv);
 
-    MainWindow mainWindow;
+    ScrutchPlayer::MainWindow mainWindow;
     mainWindow.show();
 
     return app.exec();

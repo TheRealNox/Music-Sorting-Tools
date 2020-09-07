@@ -23,7 +23,7 @@ namespace ScrutchPlayer
     class LibraryParser
     {
         //Another typedef: the map containing a type_info for key and the functor for value
-        typedef std::map<std::type_index, bool (LibraryParser::*)(const TagLib::FileRef)> AudioDispatcherMap;
+        typedef std::map<std::type_index, bool (LibraryParser::*)(const TagLib::FileRef, const std::wstring &)> AudioDispatcherMap;
 
         // -- Attributes
     private:
@@ -49,8 +49,8 @@ namespace ScrutchPlayer
 
         // -- Methods
     private:
-        bool addMP3FileToDB(const TagLib::FileRef);
-        bool addM4AFileToDB(const TagLib::FileRef);
+        bool addMP3FileToDB(const TagLib::FileRef, const std::wstring &);
+        bool addM4AFileToDB(const TagLib::FileRef, const std::wstring &);
 
     public:
         void parsePath(const std::string & path);

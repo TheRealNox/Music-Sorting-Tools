@@ -15,13 +15,13 @@ namespace ScrutchPlayer
     struct Track
     {
         int _id;
-        std::string _albumArtist;
-        std::string _albumTitle;
-        std::string _artist;
-        std::string _comments;
-        std::string _genre;
-        std::string _filePath;
-        std::string _title;
+        std::wstring _albumArtist;
+        std::wstring _albumTitle;
+        std::wstring _artist;
+        std::wstring _comments;
+        std::wstring _genre;
+        std::wstring _filePath;
+        std::wstring _title;
         std::string _coverUUID;
         unsigned short _bitrate = 0;
         unsigned short _disc = 0;

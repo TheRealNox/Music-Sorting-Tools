@@ -4,8 +4,15 @@
 
 #pragma once
 
+class QAbstractItemView;
+class QSqlQueryModel;
+
+#include "ThumbnailManager.h"
+
 namespace ScrutchPlayer
 {
+
+    class Track;
     /**
     * \class DatabaseManager
     * \brief
@@ -17,6 +24,8 @@ namespace ScrutchPlayer
         static DatabaseManager *	_instance;
         QString _libraryPath;
         bool _isInitialized = false;
+        QSqlQueryModel * _model = nullptr;
+        ThumbnailManager _thumbnailManager;
         // --!Attributes
 
         // -- CTors & DTor
@@ -28,7 +37,7 @@ namespace ScrutchPlayer
 
     private:
         DatabaseManager();
-        ~DatabaseManager() = default;
+        ~DatabaseManager();
 
         static void			deleteDatabaseManager();
         // --!CTors & DTor
@@ -38,8 +47,11 @@ namespace ScrutchPlayer
         void createDatabase();
 
     public:
+        ThumbnailManager & getThumbnailManager();
         void connectToLocalDatabase();
-
+        void connectViewToModel(QAbstractItemView *);
+        bool addTrackToDatabase(const Track &);
+        const std::string getCoverUUIDFromPath(const std::wstring & path);
         // --!Methods
     };
 }

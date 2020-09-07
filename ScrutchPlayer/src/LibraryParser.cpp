@@ -3,20 +3,25 @@
 //
 
 #include "LibraryParser.h"
-#include "Track.h"
 
-#include <QDir>
+#include <QDirIterator>
 #include <QFileInfo>
 #include <QImage>
 #include <QString>
-
+#include <QProgressDialog>
+#include <QCoreApplication>
 #include <taglib/tag.h>
 #include <taglib/fileref.h>
 #include <taglib/mpegfile.h>
 #include <taglib/mp4file.h>
 #include <taglib/id3v2tag.h>
 #include <taglib/id3v2frame.h>
+#include <taglib/tpropertymap.h>
 #include <taglib/attachedpictureframe.h>
+
+#include "DatabaseManager.h"
+#include "Track.h"
+#include "ThumbnailManager.h"
 
 using namespace ScrutchPlayer;
 
@@ -24,24 +29,27 @@ void LibraryParser::parsePath(const std::string & path)
 {
     QFileInfo   file(QString((path.c_str())));
 
-    QDir filesDir(file.absoluteFilePath());
-    filesDir.setFilter(QDir::NoDotAndDotDot | QDir::AllEntries);
-    for (const auto& fileInfo : filesDir.entryInfoList())
-    {
-        if (fileInfo.fileName().toLower().endsWith(".mp3") || fileInfo.fileName().toLower().endsWith(".m4a"))
+    QProgressDialog progress("Adding files...", "Abort import", 0, 0);
+    progress.setWindowModality(Qt::WindowModal);
+    progress.show();
+
+    QDirIterator it(path.c_str(), QStringList() << "*.mp3" << "*.m4a", QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        QCoreApplication::processEvents();
+        if (progress.wasCanceled())
+            break;
+        QString currentFile = it.next();
+        TagLib::FileRef f(currentFile.toStdWString().c_str());
+        if (!f.isNull())
         {
-            TagLib::FileRef f(fileInfo.filePath().toStdWString().c_str());
-            if (!f.isNull())
-            {
-                if (LibraryParser::_audioFileDispatcher[typeid(*f.file())] != nullptr)
-                    if (!(this->*(_audioFileDispatcher[typeid(*f.file())]))(f))
-                        std::cerr << "Couldn't add " << path << std::endl;
-            }
+            if (LibraryParser::_audioFileDispatcher[typeid(*f.file())] != nullptr)
+                if (!(this->*(_audioFileDispatcher[typeid(*f.file())]))(f, currentFile.toHtmlEscaped().toStdWString()))
+                    std::cerr << "Couldn't add " << currentFile.toStdWString() << std::endl;
         }
     }
 }
 
-bool LibraryParser::addMP3FileToDB(const TagLib::FileRef file)
+bool LibraryParser::addMP3FileToDB(const TagLib::FileRef file, const std::wstring & path)
 {
     Track toAdd;
 
@@ -49,13 +57,57 @@ bool LibraryParser::addMP3FileToDB(const TagLib::FileRef file)
     if (mp3File->ID3v2Tag() && file.audioProperties())
     {
         TagLib::ID3v2::Tag *tag = mp3File->ID3v2Tag();
-        // f.audioProperties()->bitrate();
+        /*
+         *    * Basic tags:
+           *
+           *  - TITLE
+           *  - ALBUM
+           *  - ARTIST
+           *  - ALBUMARTIST
+           *  - SUBTITLE
+           *  - TRACKNUMBER
+           *  - DISCNUMBER
+           *  - DATE
+           *  - ORIGINALDATE
+           *  - GENRE
+           *  - COMMENT
+           *
+           * Sort names:
+           *
+           *  - TITLESORT
+           *  - ALBUMSORT
+           *  - ARTISTSORT
+           *  - ALBUMARTISTSORT
+         */
+        const TagLib::ID3v2::FrameList& frameList = tag->frameList("APIC");
+        if (!frameList.isEmpty())
+        {
+            // Just grab the first image.
+            const auto* frame = (TagLib::ID3v2::AttachedPictureFrame*)frameList.front();
+            QImage * cover = new QImage();
+            cover->loadFromData((const uchar*)frame->picture().data(), frame->picture().size());
+            toAdd._coverUUID = DatabaseManager::getInstance().getThumbnailManager().createThumbnail(path, *cover);
+        }
         toAdd._bitrate = file.audioProperties()->bitrate();
+        toAdd._filePath = path;
+        toAdd._albumArtist = mp3File->properties()["ALBUMARTIST"].toString().toCWString();
+        toAdd._albumTitle = mp3File->properties()["ALBUM"].toString().toCWString();
+        toAdd._artist = mp3File->properties()["ARTIST"].toString().toCWString();
+        toAdd._comments = mp3File->properties()["COMMENT"].toString().toCWString();
+        toAdd._genre = mp3File->properties()["GENRE"].toString().toCWString();
+        toAdd._title = mp3File->properties()["TITLE"].toString().toCWString();
+        toAdd._disc = std::atoi(mp3File->properties()["DISC"].toString().toCString());
+        toAdd._totalDisk = 0;
+        toAdd._trackNumber = std::atoi(mp3File->properties()["TRACKNUMBER"].toString().toCString());
+        toAdd._totalTrackNumber = 0;
+        toAdd._year = std::atoi(mp3File->properties()["DATE"].toString().toCString());
+        toAdd._lengthInMS = file.audioProperties()->lengthInMilliseconds();
+        return DatabaseManager::getInstance().addTrackToDatabase(toAdd);
     }
     return false;
 }
 
-bool LibraryParser::addM4AFileToDB(const TagLib::FileRef file)
+bool LibraryParser::addM4AFileToDB(const TagLib::FileRef file, const std::wstring & path)
 {
     return false;
 }

@@ -14,6 +14,7 @@ set(CMAKE_PREFIX_PATH ${QTDIR}\\msvc2017_64)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Sql REQUIRED)
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
@@ -28,15 +29,20 @@ include_directories(includes)
 
 set(LOCAL_SRCS
         main.cpp
-        src/MainWindow.cpp
+        src/DatabaseManager.cpp
         src/LibraryParser.cpp
-        src/DatabaseManager.cpp)
+        src/MainWindow.cpp
+        src/ThumbnailManager.cpp
+        src/TrackItemDelegate.cpp
+        )
 
 set(LOCAL_INCLUDES
-        includes/MainWindow.h
+        includes/DatabaseManager.h
         includes/LibraryParser.h
+        includes/MainWindow.h
+        includes/ThumbnailManager.h
         includes/Track.h
-        includes/DatabaseManager.h)
+        includes/TrackItemDelegate.h)
 
 add_executable(ScrutchPlayer ${LOCAL_SRCS} ${LOCAL_INCLUDES})
 

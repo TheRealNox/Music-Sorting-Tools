@@ -8,12 +8,17 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QSqlDatabase>
-#include <QStandardPaths>
 #include <QSqlDriver>
-#include <QSqlQuery>
 #include <QSqlError>
+#include <QSqlQuery>
+#include <QSqlRecord>
+#include <QSqlQueryModel>
+#include <QStandardPaths>
+#include <QAbstractItemView>
 
 #include "DatabaseManager.h"
+#include "TrackItemDelegate.h"
+#include "Track.h"
 
 using namespace ScrutchPlayer;
 
@@ -64,15 +69,16 @@ void DatabaseManager::createDatabase()
         std::cout << "db created at " << this->_libraryPath.toStdString() << std::endl;
         // Let's init our database
         QSqlQuery query;
+        query.exec("PRAGMA encoding = \"UTF-16\"");
         //artwork db
-        query.exec("create table artwork (id int primary key, uuid text NOT NULL, path text NOT NULL)");
+        query.exec("create table artwork (uuid text NOT NULL, path text NOT NULL)");
         //track db
-        query.exec("create table track (id int primary key, album_artist text, album_title text, artist text,"
-                   "comments text, genre text, file_path text, title text, cover_uuid text, bitrate int, disc int,"
-                   "total_disk int, track_nbr int, total_track_nbr int, year int, length int");
+        query.exec("create table track (album_artist text, album_title text, artist text,"
+                   "comments text, genre text, file_path text unique, title text, cover_uuid text, bitrate int, disc int,"
+                   "total_disk int, track_nbr int, total_track_nbr int, year int, length int)");
 
-        std::cout << "error if any:" << query.lastError().text().toStdString() << std::endl;
-
+        this->_model = new QSqlQueryModel;
+        this->_model->setQuery("SELECT * FROM track", db);
     }
     else
     {
@@ -88,4 +94,75 @@ void DatabaseManager::connectToLocalDatabase()
         std::cout << "No Database found, let's create one" << std::endl;
         this->createDatabase();
     }
+    else
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+        db.setDatabaseName(this->_libraryPath);
+        if (db.open())
+        {
+            this->_model = new QSqlQueryModel;
+            this->_model->setQuery("SELECT * FROM track", db);
+        }
+    }
+}
+
+void DatabaseManager::connectViewToModel(QAbstractItemView *tableView)
+{
+    tableView->setModel(this->_model);
+    tableView->setItemDelegate(new TrackItemDelegate());
+    this->_model->setQuery(this->_model->query());
+}
+
+bool DatabaseManager::addTrackToDatabase(const Track & track)
+{
+    if (QSqlDatabase::database().isOpen())
+    {
+        QSqlQuery query;
+        query.prepare("INSERT INTO track (album_artist, album_title, artist, comments, genre, file_path,"
+                      "title, cover_uuid, bitrate, disc, total_disk, track_nbr, total_track_nbr, year, length) "
+                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        query.addBindValue(QString::fromWCharArray(track._albumArtist.c_str()));
+        query.addBindValue(QString::fromWCharArray(track._albumTitle.c_str()));
+        query.addBindValue(QString::fromWCharArray(track._artist.c_str()));
+        query.addBindValue(QString::fromWCharArray(track._comments.c_str()));
+        query.addBindValue(QString::fromWCharArray(track._genre.c_str()));
+        query.addBindValue(QString::fromWCharArray(track._filePath.c_str()));
+        query.addBindValue(QString::fromWCharArray(track._title.c_str()));
+        query.addBindValue(QString::fromStdString(track._coverUUID));
+        query.addBindValue(track._bitrate);
+        query.addBindValue(track._disc);
+        query.addBindValue(track._totalDisk);
+        query.addBindValue(track._trackNumber);
+        query.addBindValue(track._totalTrackNumber);
+        query.addBindValue(track._year);
+        query.addBindValue(track._lengthInMS);
+        query.exec();
+        if (query.lastError().text().isEmpty())
+        {
+            this->_model->setQuery(this->_model->query());
+            this->_model->query().exec();
+            return true;
+        }
+        else
+        {
+            QSqlDatabase::database().rollback();
+            return false;
+        }
+    }
+    return false;
+}
+
+DatabaseManager::~DatabaseManager()
+{
+    QSqlDatabase::database().close();
+}
+
+const std::string DatabaseManager::getCoverUUIDFromPath(const std::wstring & path)
+{
+    return this->_thumbnailManager.getThumbnailUUIDFromPath(path);
+}
+
+ThumbnailManager & DatabaseManager::getThumbnailManager()
+{
+    return this->_thumbnailManager;
 }

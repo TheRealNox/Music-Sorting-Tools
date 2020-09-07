@@ -15,15 +15,27 @@ namespace ScrutchPlayer
     class MainWindow : public QMainWindow
     {
     Q_OBJECT
-
-    public:
-        explicit MainWindow(QWidget *parent = nullptr);
-
+        // -- Attributes
     private:
         Ui::MainWindow _ui;
 
-    private:
+        // --!Attributes
 
+        // -- CTors & DTor
+    public:
+        explicit MainWindow(QWidget *parent = nullptr);
+        // --!CTors & DTor
+
+        // -- Methods
+    private:
+        void connectUI();
+    public:
+        // --!Methods
+
+        // -- Signals and Slots
     private slots:
+        void openFolderPushed();
+        // --!Signals and Slots
+
     };
 }

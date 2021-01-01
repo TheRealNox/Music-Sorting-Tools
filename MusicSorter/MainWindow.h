@@ -19,7 +19,7 @@ class						MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = Q_NULLPTR);
+    MainWindow(QWidget *parent = nullptr);
 
 private:
     Ui::MainWindowClass		_ui;
@@ -36,8 +36,6 @@ private:
 	void					outputAlbumInfoToTextEdit(QString & toAppendto, const int & bitrate, const QSize & artworkSize, QTextEdit* textEdit);
 	
 private slots:
-	void					leftTreeItemExpanded(const QModelIndex &index);
 	void					leftTreeItemClicked(const QModelIndex &index);
-	void					rightTreeItemExpanded(const QModelIndex &index);
 	void					rightTreeItemClicked(const QModelIndex &index);
 };

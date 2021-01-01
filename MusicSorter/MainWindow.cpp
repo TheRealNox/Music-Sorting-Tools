@@ -11,6 +11,8 @@
 #include <qimage.h>
 #include <qlabel.h>
 
+#include <typeinfo>
+
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
 {
@@ -34,10 +36,11 @@ MainWindow::MainWindow(QWidget *parent)
 	this->_ui._explorerView->setModel(this->_leftDirModel);
 	this->_ui._explorerView_2->setModel(this->_rightDirModel);
 
+	this->_ui._explorerView->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
+	this->_ui._explorerView_2->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
 	connect(this->_ui._explorerView, &QTreeView::clicked, this, &MainWindow::leftTreeItemClicked);
-	connect(this->_ui._explorerView, &QTreeView::expanded, this, &MainWindow::leftTreeItemExpanded);
 	connect(this->_ui._explorerView_2, &QTreeView::clicked, this, &MainWindow::rightTreeItemClicked);
-	connect(this->_ui._explorerView_2, &QTreeView::expanded, this, &MainWindow::rightTreeItemExpanded);
 	connect(this->_ui.displayKbpsCheckBox, &QCheckBox::toggled, this, [&](bool checked) {
 		this->_displayAverage = checked;
 	});
@@ -57,14 +60,14 @@ MainWindow::audioFolderInfo	MainWindow::containsAudioFiles(const QFileInfo & ent
 			infos.audioFilesNbr++;
 			if (this->_displayAverage)
 			{
-				std::string path = fileInfo.filePath().toStdString();
 				std::wstring wpath = fileInfo.filePath().toStdWString();
 				TagLib::FileRef f(wpath.c_str());
 				if (!f.isNull() && f.audioProperties())
 				{
 					infos.averageBitRate += f.audioProperties()->bitrate();
-					if (TagLib::MPEG::File* file = dynamic_cast<TagLib::MPEG::File*>(f.file()))
+					if (typeid(TagLib::MPEG::File) == typeid(*f.file()))
 					{
+						TagLib::MPEG::File* file = static_cast<TagLib::MPEG::File*>(f.file());
 						if (file->ID3v2Tag())
 						{
 							auto tag = file->ID3v2Tag();
@@ -79,8 +82,9 @@ MainWindow::audioFolderInfo	MainWindow::containsAudioFiles(const QFileInfo & ent
 							}
 						}
 					}
-					else if (TagLib::MP4::File* file = dynamic_cast<TagLib::MP4::File*>(f.file()))
+					else if (typeid(TagLib::MP4::File) == typeid(*f.file()))
 					{
+						TagLib::MP4::File* file = static_cast<TagLib::MP4::File*>(f.file());
 						TagLib::MP4::Tag* tag = file->tag();
 						const TagLib::MP4::ItemListMap& itemListMap = tag->itemListMap();
 						if (itemListMap.contains("covr"))
@@ -213,12 +217,6 @@ void MainWindow::outputAlbumInfoToTextEdit(QString & toAppendto, const int& bitr
 	textEdit->setTextColor(QColor("black"));
 }
 
-void			MainWindow::leftTreeItemExpanded(const QModelIndex &index)
-{
-	QCoreApplication::processEvents();
-	this->_ui._explorerView->header()->resizeSections(QHeaderView::ResizeToContents);
-}
-
 void			MainWindow::leftTreeItemClicked(const QModelIndex &index)
 {
 	// TreeView clicked
@@ -241,14 +239,6 @@ void			MainWindow::leftTreeItemClicked(const QModelIndex &index)
 		cursor.movePosition(QTextCursor::Start);
 		this->_ui._previewTextEdit->setTextCursor(cursor);
 	}
-
-	this->_ui._explorerView->header()->resizeSections(QHeaderView::ResizeToContents);
-}
-
-void			MainWindow::rightTreeItemExpanded(const QModelIndex &index)
-{
-	QCoreApplication::processEvents();
-	this->_ui._explorerView_2->header()->resizeSections(QHeaderView::ResizeToContents);
 }
 
 void			MainWindow::rightTreeItemClicked(const QModelIndex &index)
@@ -273,6 +263,4 @@ void			MainWindow::rightTreeItemClicked(const QModelIndex &index)
 		cursor.movePosition(QTextCursor::Start);
 		this->_ui._previewTextEdit_2->setTextCursor(cursor);
 	}
-
-	this->_ui._explorerView_2->header()->resizeSections(QHeaderView::ResizeToContents);
 }

@@ -8,8 +8,8 @@
 #include <taglib/id3v2frame.h>
 #include <taglib/attachedpictureframe.h>
 
-#include <qimage.h>
-#include <qlabel.h>
+#include <QImage>
+#include <QLabel>
 
 #include <typeinfo>
 

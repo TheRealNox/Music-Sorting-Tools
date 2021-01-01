@@ -3,7 +3,7 @@
 #include <QDebug>
 #include <QFileDialog>
 #include <QFileSystemModel>
-#include <QtWidgets/QMainWindow>
+#include <QMainWindow>
 #include <QSize>
 #include "ui_MainWindow.h"
 

@@ -96,8 +96,10 @@ bool LibraryParser::addMP3FileToDB(const TagLib::FileRef file, const std::wstrin
         toAdd._comments = mp3File->properties()["COMMENT"].toString().toCWString();
         toAdd._genre = mp3File->properties()["GENRE"].toString().toCWString();
         toAdd._title = mp3File->properties()["TITLE"].toString().toCWString();
+        std::string discs = mp3File->properties()["DISC"].toString().toCString();
         toAdd._disc = std::atoi(mp3File->properties()["DISC"].toString().toCString());
         toAdd._totalDisk = 0;
+        std::string tracks = mp3File->properties()["TRACKNUMBER"].toString().toCString();
         toAdd._trackNumber = std::atoi(mp3File->properties()["TRACKNUMBER"].toString().toCString());
         toAdd._totalTrackNumber = 0;
         toAdd._year = std::atoi(mp3File->properties()["DATE"].toString().toCString());

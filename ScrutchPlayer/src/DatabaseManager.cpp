@@ -78,7 +78,7 @@ void DatabaseManager::createDatabase()
                    "total_disk int, track_nbr int, total_track_nbr int, year int, length int)");
 
         this->_model = new QSqlQueryModel;
-        this->_model->setQuery("SELECT * FROM track", db);
+        this->_model->setQuery("SELECT * FROM track ORDER BY artist ASC, year ASC, album_title ASC, disc ASC, track_nbr ASC", db);
     }
     else
     {
@@ -101,12 +101,14 @@ void DatabaseManager::connectToLocalDatabase()
         if (db.open())
         {
             this->_model = new QSqlQueryModel;
-            this->_model->setQuery("SELECT * FROM track", db);
+            this->_model->setQuery("SELECT * FROM track ORDER BY artist ASC, year ASC, album_title ASC, disc ASC, track_nbr ASC", db);
+            this->_columnModel = new QSqlQueryModel;
+            this->_columnModel->setQuery("SELECT genre FROM track ORDER BY genre ASC UNION ALL SELECT artist FROM track ORDER BY artist ASC", db);
         }
     }
 }
 
-void DatabaseManager::connectViewToModel(QAbstractItemView *tableView)
+void DatabaseManager::connectViewToModel(QAbstractItemView *tableView, QAbstractItemView *columnView)
 {
     tableView->setModel(this->_model);
     tableView->setItemDelegate(new TrackItemDelegate());

@@ -25,6 +25,7 @@ namespace ScrutchPlayer
         QString _libraryPath;
         bool _isInitialized = false;
         QSqlQueryModel * _model = nullptr;
+        QSqlQueryModel * _columnModel = nullptr;
         ThumbnailManager _thumbnailManager;
         // --!Attributes
 
@@ -49,7 +50,7 @@ namespace ScrutchPlayer
     public:
         ThumbnailManager & getThumbnailManager();
         void connectToLocalDatabase();
-        void connectViewToModel(QAbstractItemView *);
+        void connectViewToModel(QAbstractItemView *, QAbstractItemView *columnView);
         bool addTrackToDatabase(const Track &);
         const std::string getCoverUUIDFromPath(const std::wstring & path);
         // --!Methods

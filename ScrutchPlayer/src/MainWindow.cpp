@@ -21,11 +21,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 void MainWindow::connectUI()
 {
     connect(this->_ui._openFolderButton, &QPushButton::clicked, this, &MainWindow::openFolderPushed);
-    DatabaseManager::getInstance().connectViewToModel(this->_ui._dbView);
+    DatabaseManager::getInstance().connectViewToModel(this->_ui._dbView, this->_ui._columnView);
+    this->_ui.statusbar->showMessage(QString("Tracks: " + QString::number(this->_ui._dbView->model()->rowCount())));
 }
 
 void MainWindow::openFolderPushed()
 {
+    this->_ui.statusbar->showMessage(QString("Tracks: " + QString::number(this->_ui._dbView->model()->rowCount())));
     QString dir = QFileDialog::getExistingDirectory(this, tr("Open Directory"),
                                                     "/home",
                                                     QFileDialog::ShowDirsOnly

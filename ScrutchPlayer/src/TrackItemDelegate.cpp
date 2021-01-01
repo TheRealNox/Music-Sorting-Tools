@@ -13,7 +13,7 @@ using namespace ScrutchPlayer;
 
 void TrackItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem & option, const QModelIndex & index) const
 {
-    QStyleOptionViewItemV4 opt = option;
+    QStyleOptionViewItem opt = option;
     initStyleOption(&opt, index);
 
     QString albumArtist = index.model()->data(index.model()->index(index.row(), 0)).toString();
@@ -74,6 +74,10 @@ void TrackItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem & op
 QSize TrackItemDelegate::sizeHint(const QStyleOptionViewItem & option, const QModelIndex & index) const
 {
     QSize result = QStyledItemDelegate::sizeHint(option, index);
-    result.setHeight(150);
+    result.setHeight(50);
+    if (index.column() == 7)
+    {
+        result.setWidth(50);
+    }
     return result;
 }

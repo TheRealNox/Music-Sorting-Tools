@@ -10,6 +10,7 @@
 
 #include <QImage>
 #include <QLabel>
+#include <QProgressDialog>
 
 #include <typeinfo>
 
@@ -55,6 +56,7 @@ MainWindow::audioFolderInfo	MainWindow::containsAudioFiles(const QFileInfo & ent
 	filesDir.setFilter(QDir::NoDotAndDotDot | QDir::AllEntries);
 	for (auto fileInfo : filesDir.entryInfoList())
 	{
+		QCoreApplication::processEvents();
 		if (fileInfo.fileName().toLower().endsWith(".mp3") || fileInfo.fileName().toLower().endsWith(".m4a"))
 		{
 			infos.audioFilesNbr++;
@@ -117,7 +119,7 @@ MainWindow::audioFolderInfo	MainWindow::containsAudioFiles(const QFileInfo & ent
 void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QTextEdit * textEdit)
 {
 	// Check if we see a year, which is usually how we define an album folder
-	if (entry.fileName().split(" ").at(0).toInt() > 1024 && entry.fileName().split(" ").at(0).toInt() < 4096)
+	if (entry.fileName().split(" ").at(0).toInt() > 1900 && entry.fileName().split(" ").at(0).toInt() < 2199)
 	{
 		QDir subdir(entry.absoluteFilePath());
 		subdir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
@@ -143,6 +145,7 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QTextE
 				std::vector<MainWindow::audioFolderInfo> tracksInfoPerDisk;
 				for (auto fileInfo : subdir.entryInfoList())
 				{
+					QCoreApplication::processEvents();
 					MainWindow::audioFolderInfo trackInfo;
 					trackInfo = this->containsAudioFiles(fileInfo);
 					if (trackInfo.audioFilesNbr > 0)
@@ -188,7 +191,10 @@ void	MainWindow::handleIfAlbum(const QFileInfo &entry, const int & level, QTextE
 		QDir dir(entry.absoluteFilePath());
 		dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
 		for (auto entry : dir.entryInfoList())
+		{
+			QCoreApplication::processEvents();
 			this->handleIfAlbum(entry, level + 1, textEdit);
+		}
 	}
 }
 
@@ -233,7 +239,7 @@ void			MainWindow::leftTreeItemClicked(const QModelIndex &index)
 		this->_ui._previewTextEdit->clear();
 		QDir dir(mPath);
 		dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
-		for (auto entry : dir.entryInfoList())
+		for (QFileInfo entry : dir.entryInfoList())
 			this->handleIfAlbum(entry, 0, this->_ui._previewTextEdit);
 		QTextCursor cursor(this->_ui._previewTextEdit->textCursor());
 		cursor.movePosition(QTextCursor::Start);
@@ -248,6 +254,10 @@ void			MainWindow::rightTreeItemClicked(const QModelIndex &index)
 	// 2. Set that path into our ListView
 
 	// Get the full path of the item that's user clicked on
+	QProgressDialog progress("Analyzing files...", "Cancel", 0, 0, this);
+	progress.setWindowModality(Qt::WindowModal);
+	progress.show();
+	QCoreApplication::processEvents();
 	QString		mPath = this->_rightDirModel->fileInfo(index).absoluteFilePath();
 
 	QFileInfo	fileInfo(mPath);
@@ -257,8 +267,13 @@ void			MainWindow::rightTreeItemClicked(const QModelIndex &index)
 		this->_ui._previewTextEdit_2->clear();
 		QDir dir(mPath);
 		dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
-		for (auto entry : dir.entryInfoList())
+		for (QFileInfo entry : dir.entryInfoList())
+		{
+			QCoreApplication::processEvents();
 			this->handleIfAlbum(entry, 0, this->_ui._previewTextEdit_2);
+			if (progress.wasCanceled())
+				return;
+		}
 		QTextCursor cursor(this->_ui._previewTextEdit_2->textCursor());
 		cursor.movePosition(QTextCursor::Start);
 		this->_ui._previewTextEdit_2->setTextCursor(cursor);
